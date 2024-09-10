@@ -1,4 +1,4 @@
-﻿using CircuitBreak.CircuitBreaker;
+﻿using CircuitBreak.CircuitBreaker.CircuitBreakerPolly;
 using CircuitBreak.ElasticHandler;
 using CircuitBreak.ExceptionHandler;
 using CircuitBreak.Models;
@@ -13,12 +13,12 @@ namespace CircuitBreak.Controllers
     public class PollyCircuitBreakerProductController : ControllerBase
     {
         private readonly HttpClient _httpClient;
-        private readonly ICircuitBreaker _circuitBreaker;
+        private readonly ICircuitBreakerPolicy _circuitBreakerPolicy;
 
-        public PollyCircuitBreakerProductController(HttpClient httpClient, ICircuitBreaker circuitBreaker)
+        public PollyCircuitBreakerProductController(HttpClient httpClient, ICircuitBreakerPolicy circuitBreakerPolicy)
         {
             _httpClient = httpClient;
-            _circuitBreaker = circuitBreaker;
+            _circuitBreakerPolicy = circuitBreakerPolicy;
         }
 
         [HttpGet]
@@ -26,6 +26,7 @@ namespace CircuitBreak.Controllers
         {
             try
             {
+                HttpResponseMessage response = null;
                 var url = "http://localhost:9200/products/_search";
 
                 var query = new
@@ -39,7 +40,10 @@ namespace CircuitBreak.Controllers
                 var json = System.Text.Json.JsonSerializer.Serialize(query);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                {
+                    return response = await _httpClient.PostAsync(url, content);
+                });
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -55,6 +59,10 @@ namespace CircuitBreak.Controllers
                     var responseContent = await response.Content.ReadAsStringAsync();
                     return StatusCode((int)response.StatusCode, $"Error: {responseContent}");
                 }
+            }
+            catch (CircuitBreakerOpenException ex)
+            {
+                return StatusCode(503, ex.Message);
             }
             catch (Exception ex)
             {
@@ -73,9 +81,9 @@ namespace CircuitBreak.Controllers
                 var indexName = "products";
                 var url = $"http://localhost:9200/{indexName}";
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerPolicy.ExecuteAsync(async () =>
                 {
-                    checkResponse = await _httpClient.GetAsync(url);
+                    return checkResponse = await _httpClient.GetAsync(url);
                 });
 
                 if (checkResponse.IsSuccessStatusCode)
@@ -141,9 +149,9 @@ namespace CircuitBreak.Controllers
                 var json = System.Text.Json.JsonSerializer.Serialize(product);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerPolicy.ExecuteAsync(async () =>
                 {
-                    response = await _httpClient.PostAsync(url, content);
+                    return response = await _httpClient.PostAsync(url, content);
                 });
 
                 if (response.IsSuccessStatusCode)
@@ -176,10 +184,10 @@ namespace CircuitBreak.Controllers
                 var indexName = "products";
                 var url = $"http://localhost:9200/{indexName}/_doc/{productId}";
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerPolicy.ExecuteAsync(async () =>
                 {
                     
-                    response = await _httpClient.DeleteAsync(url);
+                   return response = await _httpClient.DeleteAsync(url);
                 });
                 
 

@@ -1,4 +1,4 @@
-﻿using CircuitBreak.CircuitBreaker;
+﻿using CircuitBreak.CircuitBreaker.CircuitBreakerManual;
 using CircuitBreak.ElasticHandler;
 using CircuitBreak.ExceptionHandler;
 using CircuitBreak.Models;
@@ -13,12 +13,12 @@ namespace CircuitBreak.Controllers
     public class ManualCircuitBreakerProductController : ControllerBase
     {
         private readonly HttpClient _httpClient;
-        private readonly ICircuitBreaker _circuitBreaker;
+        private readonly ICircuitBreakerManual _circuitBreakerManual;
 
-        public ManualCircuitBreakerProductController(HttpClient httpClient, ICircuitBreaker circuitBreaker)
+        public ManualCircuitBreakerProductController(HttpClient httpClient, ICircuitBreakerManual circuitBreakerManual)
         {
             _httpClient = httpClient;
-            _circuitBreaker = circuitBreaker;
+            _circuitBreakerManual = circuitBreakerManual;
         }
 
         [HttpGet]
@@ -26,6 +26,7 @@ namespace CircuitBreak.Controllers
         {
             try
             {
+                HttpResponseMessage response = null;
                 var url = "http://localhost:9200/products/_search";
 
                 var query = new
@@ -39,7 +40,10 @@ namespace CircuitBreak.Controllers
                 var json = System.Text.Json.JsonSerializer.Serialize(query);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                await _circuitBreakerManual.ExecuteAsync(async () =>
+                {
+                    response = await _httpClient.PostAsync(url, content);
+                });
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -73,7 +77,7 @@ namespace CircuitBreak.Controllers
                 var indexName = "products";
                 var url = $"http://localhost:9200/{indexName}";
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerManual.ExecuteAsync(async () =>
                 {
                     checkResponse = await _httpClient.GetAsync(url);
                 });
@@ -141,7 +145,7 @@ namespace CircuitBreak.Controllers
                 var json = System.Text.Json.JsonSerializer.Serialize(product);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerManual.ExecuteAsync(async () =>
                 {
                     response = await _httpClient.PostAsync(url, content);
                 });
@@ -176,7 +180,7 @@ namespace CircuitBreak.Controllers
                 var indexName = "products";
                 var url = $"http://localhost:9200/{indexName}/_doc/{productId}";
 
-                await _circuitBreaker.ExecuteAsync(async () =>
+                await _circuitBreakerManual.ExecuteAsync(async () =>
                 {
                     
                     response = await _httpClient.DeleteAsync(url);

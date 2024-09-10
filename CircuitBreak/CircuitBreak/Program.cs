@@ -1,10 +1,12 @@
-using CircuitBreak.CircuitBreaker;
+using CircuitBreak.CircuitBreaker.CircuitBreakerManual;
+using CircuitBreak.CircuitBreaker.CircuitBreakerPolly;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddSingleton<ICircuitBreaker, CircuitBreaker>();
+builder.Services.AddSingleton<ICircuitBreakerManual, CircuitBreakerManual>();
+builder.Services.AddSingleton<ICircuitBreakerPolicy, CircuitBreakerPolicy>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddControllers();

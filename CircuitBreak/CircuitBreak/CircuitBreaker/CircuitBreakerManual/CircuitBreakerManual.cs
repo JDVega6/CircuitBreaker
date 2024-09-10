@@ -1,8 +1,8 @@
 ﻿using CircuitBreak.ExceptionHandler;
 
-namespace CircuitBreak.CircuitBreaker
+namespace CircuitBreak.CircuitBreaker.CircuitBreakerManual
 {
-    public class CircuitBreaker : ICircuitBreaker
+    public class CircuitBreakerManual : ICircuitBreakerManual
     {
         private enum CircuitState
         {
@@ -13,7 +13,7 @@ namespace CircuitBreak.CircuitBreaker
 
         private int failureCount = 0;
         private readonly int failureThreshold = 3;
-        private TimeSpan openToHalfOpenWaitTime = TimeSpan.FromSeconds(15);
+        private TimeSpan openToHalfOpenWaitTime = TimeSpan.FromSeconds(20);
         private DateTime lastStateChangeTime;
         private CircuitState state = CircuitState.Closed;
 
@@ -29,12 +29,12 @@ namespace CircuitBreak.CircuitBreaker
                     if (DateTime.UtcNow - lastStateChangeTime >= openToHalfOpenWaitTime)
                     {
                         state = CircuitState.HalfOpen;
-                        Console.WriteLine("Circuit in semi-open state.");
+                        Console.WriteLine("Circuit in semi-open state. (CircuitBreakerManual)");
                         await ExecuteActionAsync(action);
                     }
                     else
                     {
-                        throw new CircuitBreakerOpenException("Circuit is open. Please try again later.");
+                        throw new CircuitBreakerOpenException("Circuit is open. Please try again later. (CircuitBreakerManual)");
                     }
                     break;
 
@@ -52,7 +52,7 @@ namespace CircuitBreak.CircuitBreaker
 
                 if (state == CircuitState.HalfOpen)
                 {
-                    Console.WriteLine("Circuit closed again after successful test.");
+                    Console.WriteLine("Circuit closed again after successful test. (CircuitBreakerManual)");
                     state = CircuitState.Closed;
                     failureCount = 0;
                 }
@@ -65,15 +65,13 @@ namespace CircuitBreak.CircuitBreaker
                 {
                     state = CircuitState.Open;
                     lastStateChangeTime = DateTime.UtcNow;
-                    Console.WriteLine($"Open circuit. It will open for {openToHalfOpenWaitTime.TotalSeconds} seconds.");
-
-                    //openToHalfOpenWaitTime *= 2;
+                    Console.WriteLine($"Open circuit. It will open for {openToHalfOpenWaitTime.TotalSeconds} seconds. (CircuitBreakerManual)");
                 }
                 else if (state == CircuitState.HalfOpen)
                 {
                     state = CircuitState.Open;
                     lastStateChangeTime = DateTime.UtcNow;
-                    Console.WriteLine($"Circuit reopened after a fault in half-open state. It will open for {openToHalfOpenWaitTime.TotalSeconds} seconds.");
+                    Console.WriteLine($"Circuit reopened after a fault in half-open state. It will open for {openToHalfOpenWaitTime.TotalSeconds} seconds. (CircuitBreakerManual)");
                 }
 
                 throw;
