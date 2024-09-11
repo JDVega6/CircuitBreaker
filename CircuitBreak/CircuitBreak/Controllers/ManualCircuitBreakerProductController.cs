@@ -14,11 +14,13 @@ namespace CircuitBreak.Controllers
     {
         private readonly HttpClient _httpClient;
         private readonly ICircuitBreakerManual _circuitBreakerManual;
+        private readonly string _elasticSearch;
 
-        public ManualCircuitBreakerProductController(HttpClient httpClient, ICircuitBreakerManual circuitBreakerManual)
+        public ManualCircuitBreakerProductController(HttpClient httpClient, ICircuitBreakerManual circuitBreakerManual, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _circuitBreakerManual = circuitBreakerManual;
+            _elasticSearch = configuration["ConnectionStrings:ElasticSearchConnection"];
         }
 
         [HttpGet]
@@ -27,7 +29,8 @@ namespace CircuitBreak.Controllers
             try
             {
                 HttpResponseMessage response = null;
-                var url = "http://localhost:9200/products/_search";
+
+                var url = $"{_elasticSearch}/products/_search";
 
                 var query = new
                 {
@@ -75,7 +78,7 @@ namespace CircuitBreak.Controllers
                 HttpResponseMessage checkResponse = null;
 
                 var indexName = "products";
-                var url = $"http://localhost:9200/{indexName}";
+                var url = $"{_elasticSearch}/{indexName}";
 
                 await _circuitBreakerManual.ExecuteAsync(async () =>
                 {
@@ -140,7 +143,7 @@ namespace CircuitBreak.Controllers
                 product.ProductId = Guid.NewGuid();
 
                 var indexName = "products";
-                var url = $"http://localhost:9200/{indexName}/_doc/{product.ProductId}";
+                var url = $"{_elasticSearch}/{indexName}/_doc/{product.ProductId}";
 
                 var json = System.Text.Json.JsonSerializer.Serialize(product);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -178,7 +181,7 @@ namespace CircuitBreak.Controllers
                 HttpResponseMessage response = null;
 
                 var indexName = "products";
-                var url = $"http://localhost:9200/{indexName}/_doc/{productId}";
+                var url = $"{_elasticSearch}/{indexName}/_doc/{productId}";
 
                 await _circuitBreakerManual.ExecuteAsync(async () =>
                 {

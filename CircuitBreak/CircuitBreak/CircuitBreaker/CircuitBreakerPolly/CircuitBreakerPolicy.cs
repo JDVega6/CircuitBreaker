@@ -11,7 +11,7 @@ namespace CircuitBreak.CircuitBreaker.CircuitBreakerPolly
         public CircuitBreakerPolicy()
         {
             _circuitBreakerPolicy = Policy
-                .Handle<CircuitBreakerOpenException>()
+                .Handle<Exception>()
                 .CircuitBreakerAsync(
                     exceptionsAllowedBeforeBreaking: 3,
                     durationOfBreak: TimeSpan.FromSeconds(20),
